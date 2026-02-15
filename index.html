@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>万能文書作成・デザインツール</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- サイドバー (設定) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fa-solid fa-file-pen"></i> 文書作成ツール</h1>
+                <p>プロフェッショナルな書類をA4で出力</p>
+            </div>
+
+            <div class="controls-container">
+                <!-- 基本情報 -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-file-signature"></i> 文書タイプ</h3>
+                    <div class="input-wrap">
+                        <label>テンプレート</label>
+                        <select id="input-doc-type">
+                            <option value="announcement">生徒会お知らせ</option>
+                            <option value="proposal">提案書</option>
+                            <option value="planning">企画書</option>
+                            <option value="contract">契約書</option>
+                            <option value="purchase-order">発注書</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 基本情報 -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-pen"></i> 基本情報</h3>
+                    <div class="input-wrap">
+                        <label>タイトル</label>
+                        <input type="text" id="input-title" value="生徒会からのお知らせ">
+                    </div>
+                    <div class="input-wrap">
+                        <label>発行日</label>
+                        <input type="date" id="input-date">
+                    </div>
+                    <div class="input-wrap">
+                        <label>発行者名</label>
+                        <div class="issuer-input-container">
+                            <div class="issuer-select-wrap">
+                                <select id="input-issuer-select">
+                                    <option value="生徒会執行部">生徒会執行部</option>
+                                    <option value="ADD_NEW">-- 新規追加 --</option>
+                                </select>
+                                <button id="btn-delete-issuer" class="icon-btn-danger" title="この項目を削除"
+                                    style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <input type="text" id="input-issuer" style="display:none;" placeholder="新しい部門名を入力">
+                        </div>
+                    </div>
+                    <div class="input-wrap">
+                        <label>ボリューム/号数</label>
+                        <input type="text" id="input-vol" value="Vol. 1">
+                    </div>
+                </div>
+
+                <!-- デザイン設定 -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-palette"></i> デザイン設定</h3>
+                    <div class="input-wrap">
+                        <label>テーマカラー (赤基調)</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="input-color-primary" value="#D32F2F">
+                            <span id="color-code">#D32F2F</span>
+                        </div>
+                    </div>
+                    <div class="input-wrap">
+                        <label>フォント</label>
+                        <select id="input-font">
+                            <option value="'Noto Sans JP', sans-serif">ゴシック体 (標準)</option>
+                            <option value="'Noto Serif JP', serif">明朝体 (フォーマル)</option>
+                            <option value="'Zen Maru Gothic', sans-serif">丸ゴシック (親しみ)</option>
+                        </select>
+                    </div>
+                    <div class="input-wrap">
+                        <label>レイアウトタイプ</label>
+                        <div class="layout-options">
+                            <button class="layout-btn active" data-layout="standard"><i
+                                    class="fa-solid fa-file-lines"></i> 標準</button>
+                            <button class="layout-btn" data-layout="modern"><i class="fa-solid fa-table-columns"></i>
+                                モダン</button>
+                            <button class="layout-btn" data-layout="simple"><i class="fa-regular fa-file"></i>
+                                シンプル</button>
+                        </div>
+                    </div>
+                    <div class="input-wrap range-wrap">
+                        <div class="label-with-value">
+                            <label>タイトル文字サイズ</label>
+                            <span class="range-val"><span id="val-size-title">32</span>pt</span>
+                        </div>
+                        <input type="range" id="input-size-title" min="20" max="60" value="32">
+                    </div>
+                    <div class="input-wrap range-wrap">
+                        <div class="label-with-value">
+                            <label>本文文字サイズ</label>
+                            <span class="range-val"><span id="val-size-body">11</span>pt</span>
+                        </div>
+                        <input type="range" id="input-size-body" min="8" max="20" value="11">
+                    </div>
+                </div>
+
+                <!-- コンテンツセクション -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-layer-group"></i> コンテンツセクション</h3>
+                    <div id="sections-container">
+                        <!-- Dynamic sections will be added here -->
+                    </div>
+                    <button id="btn-add-section" class="secondary-btn w-100 mt-10">
+                        <i class="fa-solid fa-plus"></i> セクションを追加
+                    </button>
+                </div>
+
+                <!-- 画像 -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-image"></i> 画像設定</h3>
+                    <div class="input-wrap">
+                        <label>メイン画像</label>
+                        <input type="file" id="input-image" accept="image/*">
+                        <button id="btn-remove-image" class="secondary-btn"
+                            style="display:none; margin-top:5px;">画像を削除</button>
+                    </div>
+                    <div class="input-wrap range-wrap">
+                        <label>画像の大きさ</label>
+                        <input type="range" id="input-image-size" min="20" max="100" value="100">
+                    </div>
+                </div>
+
+                <!-- フッター -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-copyright"></i> フッター</h3>
+                    <div class="input-wrap">
+                        <label>連絡先・備考</label>
+                        <textarea id="input-footer" rows="2">ご不明な点は生徒会室までお問い合わせください。</textarea>
+                    </div>
+                </div>
+
+                <!-- 作成履歴 -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> 作成履歴</h3>
+                    <div id="history-container" class="history-list">
+                        <!-- History items will be added here -->
+                        <p class="empty-msg">履歴はありません</p>
+                    </div>
+                    <button id="btn-save-history" class="secondary-btn w-100 mt-10">
+                        <i class="fa-solid fa-floppy-disk"></i> 現在の状態を履歴に保存
+                    </button>
+                    <p class="help-text mt-10">※履歴はブラウザに保存されます。ファイルを移動すると消える場合があります。</p>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="btn-export" class="primary-btn"><i class="fa-solid fa-file-pdf"></i> PDFとして保存</button>
+            </div>
+        </aside>
+
+        <!-- メインビュー (プレビュー) -->
+        <main class="preview-area">
+            <div class="toolbar">
+                <span class="toolbar-label">プレビュー (A4サイズ)</span>
+                <div class="zoom-controls">
+                    <button id="zoom-out"><i class="fa-solid fa-minus"></i></button>
+                    <span id="zoom-level">100%</span>
+                    <button id="zoom-in"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="paper-container">
+                <div id="paper" class="paper a4 layout-standard">
+                    <!-- ヘッダーエリア -->
+                    <header class="paper-header">
+                        <div class="header-decoration"></div>
+                        <div class="header-content">
+                            <div class="issue-info">
+                                <span class="issue-date" id="preview-date">2024年4月1日</span>
+                                <span class="issue-vol" id="preview-vol">Vol. 1</span>
+                            </div>
+                            <h1 class="paper-title" id="preview-title">生徒会からのお知らせ</h1>
+                            <div class="issuer" id="preview-issuer">生徒会執行部</div>
+                        </div>
+                    </header>
+
+                    <!-- メインコンテンツ -->
+                    <div class="paper-body">
+                        <div id="preview-sections">
+                            <!-- Dynamic preview sections will be added here -->
+                        </div>
+
+                        <div class="content-wrapper">
+                            <div class="image-container" id="preview-image-container" style="display:none;">
+                                <img id="preview-image" src="" alt="Main Image">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- フッター -->
+                    <footer class="paper-footer">
+                        <div class="footer-line"></div>
+                        <p id="preview-footer">ご不明な点は生徒会室までお問い合わせください。</p>
+                    </footer>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
