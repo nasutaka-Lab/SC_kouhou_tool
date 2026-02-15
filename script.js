@@ -43,6 +43,13 @@ const DOC_TEMPLATES = {
 
 const DEFAULT_ISSUERS = ["生徒会執行部"];
 let customIssuers = [];
+let savedGradients = [
+    { primary: "#D32F2F", accent: "#FF5252" },
+    { primary: "#1976D2", accent: "#42A5F5" },
+    { primary: "#388E3C", accent: "#66BB6A" },
+    { primary: "#7B1FA2", accent: "#AB47BC" },
+    { primary: "#FBC02D", accent: "#FFF176" }
+]; // Default gradient themes
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
@@ -53,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         issuer: document.getElementById('input-issuer'),
         vol: document.getElementById('input-vol'),
         color: document.getElementById('input-color-primary'),
+        colorAccent: document.getElementById('input-color-accent'),
         font: document.getElementById('input-font'),
         footer: document.getElementById('input-footer'),
         imageFile: document.getElementById('input-image'),
@@ -85,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDeleteIssuer = document.getElementById('btn-delete-issuer');
     const historyContainer = document.getElementById('history-container');
     const btnSaveHistory = document.getElementById('btn-save-history');
+    const btnSaveGradient = document.getElementById('btn-save-gradient');
+    const gradientsContainer = document.getElementById('saved-gradients-container');
+    const colorCodeAccent = document.getElementById('color-code-accent');
 
     const valDisplays = {
         titleSize: document.getElementById('val-size-title'),
@@ -105,8 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
     inputs.date.value = `${yyyy}-${mm}-${dd}`;
 
     loadState(); // Initial load
+    loadGradients();
     updateIssuerSelect();
     renderHistory();
+    renderGradients();
     updatePreview();
 
     // --- Event Listeners ---
@@ -201,9 +214,89 @@ document.addEventListener('DOMContentLoaded', () => {
         const color = e.target.value;
         colorCode.textContent = color;
         document.documentElement.style.setProperty('--primary-color', color);
+        updatePreview();
         saveState();
     });
 
+    btnSaveGradient.addEventListener('click', () => {
+        const p = inputs.color.value;
+        const a = inputs.colorAccent.value;
+        // Check if already exists
+        if (!savedGradients.some(g => g.primary === p && g.accent === a)) {
+            savedGradients.push({ primary: p, accent: a });
+            saveGradients();
+            renderGradients();
+        }
+    });
+
+    function saveGradients() {
+        localStorage.setItem('announcement_tool_gradients', JSON.stringify(savedGradients));
+    }
+
+    function loadGradients() {
+        const saved = localStorage.getItem('announcement_tool_gradients');
+        if (saved) {
+            savedGradients = JSON.parse(saved);
+        }
+    }
+
+    function renderGradients() {
+        if (!gradientsContainer) return;
+        gradientsContainer.innerHTML = '';
+        savedGradients.forEach(grad => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            if (inputs.color.value.toLowerCase() === grad.primary.toLowerCase() &&
+                inputs.colorAccent.value.toLowerCase() === grad.accent.toLowerCase()) {
+                swatch.classList.add('active');
+            }
+            swatch.style.background = `linear-gradient(135deg, ${grad.primary} 0%, ${grad.accent} 100%)`;
+            swatch.title = `${grad.primary} / ${grad.accent}`;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn-remove-color';
+            removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                savedGradients = savedGradients.filter(g => !(g.primary === grad.primary && g.accent === grad.accent));
+                saveGradients();
+                renderGradients();
+            });
+
+            swatch.appendChild(removeBtn);
+
+            swatch.addEventListener('click', () => {
+                inputs.color.value = grad.primary;
+                inputs.colorAccent.value = grad.accent;
+                colorCode.textContent = grad.primary;
+                if (colorCodeAccent) colorCodeAccent.textContent = grad.accent;
+                preview.paper.style.setProperty('--paper-primary', grad.primary);
+                preview.paper.style.setProperty('--paper-accent', grad.accent);
+                renderGradients();
+                updatePreview();
+                saveState();
+            });
+
+            gradientsContainer.appendChild(swatch);
+        });
+    }
+
+    // Color Pickers
+    inputs.color.addEventListener('input', (e) => {
+        const color = e.target.value;
+        colorCode.textContent = color;
+        preview.paper.style.setProperty('--paper-primary', color);
+        updatePreview();
+        saveState();
+    });
+
+    inputs.colorAccent.addEventListener('input', (e) => {
+        const color = e.target.value;
+        if (colorCodeAccent) colorCodeAccent.textContent = color;
+        preview.paper.style.setProperty('--paper-accent', color);
+        updatePreview();
+        saveState();
+    });
     // Layout Switching
     layoutBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -470,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
             issuer: inputs.issuer.value,
             vol: inputs.vol.value,
             color: inputs.color.value,
+            colorAccent: inputs.colorAccent.value,
             font: inputs.font.value,
             footer: inputs.footer.value,
             titleSize: inputs.titleSize.value,
@@ -495,6 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inputs.issuer.value = state.issuer;
             inputs.vol.value = state.vol;
             inputs.color.value = state.color;
+            inputs.colorAccent.value = state.colorAccent || '#FF5252';
             inputs.font.value = state.font;
             inputs.footer.value = state.footer;
             inputs.titleSize.value = state.titleSize;
@@ -506,7 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (inputs.issuerSelect) inputs.issuerSelect.value = state.issuer || inputs.issuer.value;
 
             colorCode.textContent = state.color;
-            document.documentElement.style.setProperty('--primary-color', state.color);
+            if (colorCodeAccent) colorCodeAccent.textContent = state.colorAccent || '#FF5252';
+            preview.paper.style.setProperty('--paper-primary', state.color);
+            preview.paper.style.setProperty('--paper-accent', state.colorAccent || '#FF5252');
             valDisplays.titleSize.textContent = state.titleSize;
             valDisplays.bodySize.textContent = state.bodySize;
 
@@ -547,29 +644,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- PDF Export ---
     exportBtn.addEventListener('click', () => {
         const element = document.getElementById('paper');
+
+        // Sanitize filename
+        const safeTitle = (inputs.title.value || 'document').replace(/[\\/:*?"<>|]/g, '_');
+        const safeDate = (inputs.date.value || '').replace(/[\\/:*?"<>|]/g, '_');
+        const filename = `${safeTitle}_${safeDate}.pdf`;
+
         const opt = {
             margin: 0,
-            filename: `${inputs.title.value}_${inputs.date.value}.pdf`,
+            filename: filename,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
                 scale: 2,
                 useCORS: true,
                 letterRendering: true,
                 scrollX: 0,
-                scrollY: 0
+                scrollY: 0,
+                // Critical for correct layout scaling
+                windowWidth: 794 // Approx A4 width in px at 96dpi
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak: { mode: 'avoid-all' }
         };
 
         const originalTransform = element.style.transform;
         const originalHeight = element.style.height;
+        const originalWidth = element.style.width;
         const originalOverflow = element.style.overflow;
         const originalShadow = element.style.boxShadow;
 
-        // Force single page dimensions and remove shadows that might cause overflow
+        // Force single page dimensions (793.7px wide by 1122.5px high is A4 at 96dpi)
         element.style.transform = 'none';
-        element.style.height = '296.5mm'; // Slightly less than 297mm to avoid threshold issues
+        element.style.width = '793.7px';
+        element.style.height = '1122px'; // Just slightly shorter to be safe
         element.style.overflow = 'hidden';
         element.style.boxShadow = 'none';
 
@@ -578,15 +685,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html2pdf().set(opt).from(element).save().then(() => {
             element.style.transform = originalTransform;
+            element.style.width = originalWidth;
             element.style.height = originalHeight;
             element.style.overflow = originalOverflow;
             element.style.boxShadow = originalShadow;
             exportBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> PDFとして保存';
             exportBtn.disabled = false;
         }).catch(err => {
-            console.error(err);
-            alert('PDF生成に失敗しました。');
+            console.error("PDF Export Error:", err);
+            alert('PDFの書き出し中にエラーが発生しました。コンソールで詳細を確認してください。');
             element.style.transform = originalTransform;
+            element.style.width = originalWidth;
             element.style.height = originalHeight;
             element.style.overflow = originalOverflow;
             element.style.boxShadow = originalShadow;
