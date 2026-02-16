@@ -89,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const layoutBtns = document.querySelectorAll('.layout-btn');
     const colorCode = document.getElementById('color-code');
     const exportBtn = document.getElementById('btn-export');
+    const exportPngBtn = document.getElementById('btn-export-png');
+    const exportJpgBtn = document.getElementById('btn-export-jpg');
     const removeImgBtn = document.getElementById('btn-remove-image');
     const btnDeleteIssuer = document.getElementById('btn-delete-issuer');
     const historyContainer = document.getElementById('history-container');
@@ -96,6 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSaveGradient = document.getElementById('btn-save-gradient');
     const gradientsContainer = document.getElementById('saved-gradients-container');
     const colorCodeAccent = document.getElementById('color-code-accent');
+    const progressPopup = document.getElementById('export-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const progressTime = document.getElementById('progress-time');
 
     const valDisplays = {
         titleSize: document.getElementById('val-size-title'),
@@ -641,66 +647,169 @@ document.addEventListener('DOMContentLoaded', () => {
         applyState(JSON.parse(saved));
     }
 
+    // --- Export Progress Simulation ---
+    function showProgress(format, estimatedTotalSeconds = 5) {
+        progressPopup.style.display = 'block';
+        progressText.textContent = `${format.toUpperCase()}を生成中...`;
+        progressTime.textContent = `残り約 ${estimatedTotalSeconds} 秒`;
+        progressBar.style.width = '0%';
+
+        let elapsed = 0;
+        const intervalTime = 200;
+        const interval = setInterval(() => {
+            elapsed += intervalTime / 1000;
+            const progress = Math.min((elapsed / estimatedTotalSeconds) * 90, 90);
+            progressBar.style.width = `${progress}%`;
+
+            const remaining = Math.max(0, Math.ceil(estimatedTotalSeconds - elapsed));
+            progressTime.textContent = `残り約 ${remaining} 秒`;
+
+            if (elapsed >= estimatedTotalSeconds * 0.9) {
+                clearInterval(interval);
+            }
+        }, intervalTime);
+
+        return () => {
+            clearInterval(interval);
+            progressTime.textContent = "完了！";
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressPopup.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 800);
+        };
+    }
+
     // --- PDF Export ---
     exportBtn.addEventListener('click', () => {
+        updatePreview();
+        const finishProgress = showProgress('PDF', 6);
+
         const element = document.getElementById('paper');
 
-        // Sanitize filename
         const safeTitle = (inputs.title.value || 'document').replace(/[\\/:*?"<>|]/g, '_');
         const safeDate = (inputs.date.value || '').replace(/[\\/:*?"<>|]/g, '_');
         const filename = `${safeTitle}_${safeDate}.pdf`;
 
-        const opt = {
-            margin: 0,
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                scrollX: 0,
-                scrollY: 0,
-                // Critical for correct layout scaling
-                windowWidth: 794 // Approx A4 width in px at 96dpi
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: 'avoid-all' }
+        const originalStyles = {
+            transform: element.style.transform,
+            width: element.style.width,
+            height: element.style.height,
+            overflow: element.style.overflow,
+            boxShadow: element.style.boxShadow,
+            position: element.style.position,
+            left: element.style.left,
+            top: element.style.top,
+            zIndex: element.style.zIndex
         };
 
-        const originalTransform = element.style.transform;
-        const originalHeight = element.style.height;
-        const originalWidth = element.style.width;
-        const originalOverflow = element.style.overflow;
-        const originalShadow = element.style.boxShadow;
-
-        // Force single page dimensions (793.7px wide by 1122.5px high is A4 at 96dpi)
+        // Deep isolation for capture
         element.style.transform = 'none';
         element.style.width = '793.7px';
-        element.style.height = '1122px'; // Just slightly shorter to be safe
+        element.style.height = '1122px';
         element.style.overflow = 'hidden';
         element.style.boxShadow = 'none';
+        element.style.position = 'fixed';
+        element.style.left = '0';
+        element.style.top = '0';
+        element.style.zIndex = '99999';
 
-        exportBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中...';
         exportBtn.disabled = true;
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.style.transform = originalTransform;
-            element.style.width = originalWidth;
-            element.style.height = originalHeight;
-            element.style.overflow = originalOverflow;
-            element.style.boxShadow = originalShadow;
-            exportBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> PDFとして保存';
+        html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: 794
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(filename);
+
+            Object.assign(element.style, originalStyles);
             exportBtn.disabled = false;
+            finishProgress();
         }).catch(err => {
             console.error("PDF Export Error:", err);
-            alert('PDFの書き出し中にエラーが発生しました。コンソールで詳細を確認してください。');
-            element.style.transform = originalTransform;
-            element.style.width = originalWidth;
-            element.style.height = originalHeight;
-            element.style.overflow = originalOverflow;
-            element.style.boxShadow = originalShadow;
-            exportBtn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> PDFとして保存';
+            finishProgress();
+            alert('PDFの書き出し中にエラーが発生しました。');
+            Object.assign(element.style, originalStyles);
             exportBtn.disabled = false;
         });
     });
+
+    // --- Image Export (PNG/JPG) ---
+    function exportImage(format) {
+        updatePreview(); // Ensure preview is up to date
+        // Images take longer, estimate 8s
+        const finishProgress = showProgress(format, 8);
+
+        const element = document.getElementById('paper');
+        const btn = format === 'png' ? exportPngBtn : exportJpgBtn;
+
+        const safeTitle = (inputs.title.value || 'document').replace(/[\\/:*?"<>|]/g, '_');
+        const safeDate = (inputs.date.value || '').replace(/[\\/:*?"<>|]/g, '_');
+        const filename = `${safeTitle}_${safeDate}.${format}`;
+
+        const originalStyles = {
+            transform: element.style.transform,
+            width: element.style.width,
+            height: element.style.height,
+            overflow: element.style.overflow,
+            boxShadow: element.style.boxShadow,
+            position: element.style.position,
+            left: element.style.left,
+            top: element.style.top,
+            zIndex: element.style.zIndex
+        };
+
+        // Deep isolation for Image capture
+        element.style.transform = 'none';
+        element.style.width = '793.7px';
+        element.style.height = '1122px';
+        element.style.overflow = 'hidden';
+        element.style.boxShadow = 'none';
+        element.style.position = 'fixed';
+        element.style.left = '0';
+        element.style.top = '0';
+        element.style.zIndex = '99999';
+
+        btn.disabled = true;
+
+        // Use scale: 1.5 to speed up rendering without losing too much quality
+        html2canvas(element, {
+            scale: 1.5,
+            useCORS: true,
+            logging: false,
+            windowWidth: 794
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.9);
+            link.click();
+
+            Object.assign(element.style, originalStyles);
+            btn.disabled = false;
+            finishProgress();
+        }).catch(err => {
+            console.error("Image Export Error:", err);
+            finishProgress();
+            alert('画像の書き出し中にエラーが発生しました。');
+            Object.assign(element.style, originalStyles);
+            btn.disabled = false;
+        });
+    }
+
+    if (exportPngBtn) {
+        exportPngBtn.addEventListener('click', () => exportImage('png'));
+    }
+    if (exportJpgBtn) {
+        exportJpgBtn.addEventListener('click', () => exportImage('jpg'));
+    }
 });

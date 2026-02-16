@@ -13,8 +13,9 @@
         rel="stylesheet">
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2pdf -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html2canvas & jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -196,6 +197,12 @@
 
             <div class="sidebar-footer">
                 <button id="btn-export" class="primary-btn"><i class="fa-solid fa-file-pdf"></i> PDFとして保存</button>
+                <div class="export-options mt-10">
+                    <button id="btn-export-png" class="secondary-btn w-100"><i class="fa-solid fa-image"></i>
+                        PNGで保存</button>
+                    <button id="btn-export-jpg" class="secondary-btn w-100"><i class="fa-solid fa-image"></i>
+                        JPGで保存</button>
+                </div>
             </div>
         </aside>
 
@@ -246,6 +253,18 @@
                 </div>
             </div>
         </main>
+    </div>
+    <div id="export-progress" class="progress-popup" style="display: none;">
+        <div class="progress-content">
+            <div class="progress-info">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span id="progress-text">書き出し中...</span>
+                <span id="progress-time" class="remaining-time">残り約 -- 秒</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

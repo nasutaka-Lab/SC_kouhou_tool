@@ -44,8 +44,8 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-    flex: 2;
-    /* 2 parts (40%) */
+    flex: 1;
+    /* 1 part (20%) */
     min-width: 320px;
     background-color: var(--sidebar-bg);
     color: var(--sidebar-text);
@@ -58,8 +58,8 @@ body {
 
 /* Preview Area */
 .preview-area {
-    flex: 3;
-    /* 3 parts of the layout */
+    flex: 4;
+    /* 4 parts (80%) */
     background-color: #525659;
     display: flex;
     flex-direction: column;
@@ -88,28 +88,32 @@ body {
 .controls-container {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     align-content: start;
 }
 
 .control-group {
     background: var(--panel-bg);
     border-radius: var(--radius-md);
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .control-group h3 {
-    font-size: 0.85rem;
-    margin-bottom: 12px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
     color: #ff8a80;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 6px;
-    font-weight: 500;
+    padding-bottom: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .input-wrap {
@@ -118,9 +122,10 @@ body {
 
 .input-wrap label {
     display: block;
-    font-size: 0.75rem;
-    margin-bottom: 3px;
-    color: #aaa;
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    color: #ccc;
+    font-weight: 500;
 }
 
 .input-wrap input[type="text"],
@@ -129,12 +134,12 @@ body {
 .input-wrap textarea {
     width: 100%;
     background: var(--input-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: #fff;
-    padding: 6px 10px;
+    padding: 10px 12px;
     border-radius: var(--radius-sm);
     font-family: inherit;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
 }
 
@@ -354,15 +359,23 @@ body {
     background: #252525;
 }
 
-/* Specific spans for larger sections */
-#sections-container-parent,
-#history-container-parent {
-    grid-column: span 2;
+.export-options {
+    display: flex;
+    gap: 10px;
 }
 
-/* Ensure these groups span 2 columns in index.html as well */
+.export-options button {
+    flex: 1;
+}
+
+/* Specific spans for larger sections - No longer needed in flex layout */
+#sections-container-parent,
+#history-container-parent {
+    grid-column: auto;
+}
+
 .control-group.full-width {
-    grid-column: span 2;
+    grid-column: auto;
 }
 
 .primary-btn {
@@ -443,8 +456,8 @@ body {
 
 /* Preview Area */
 .preview-area {
-    flex: 3;
-    /* 3 parts (60%) */
+    flex: 4;
+    /* 4 parts (80%) */
     background-color: #525659;
     /* Standard PDF viewer background */
     display: flex;
@@ -899,4 +912,69 @@ body {
 
 .controls-container::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* Progress Bar Popup */
+.progress-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: #2c3e50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    width: 280px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.progress-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.progress-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    flex-wrap: wrap;
+}
+
+.remaining-time {
+    font-size: 0.75rem;
+    color: #ff8a80;
+    margin-left: auto;
+    font-weight: bold;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff8a80, #ff5252);
+    transition: width 0.3s ease;
 }
