@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap"
         rel="stylesheet">
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,27 +20,57 @@
 </head>
 
 <body>
+    <header class="app-top-bar">
+        <div class="top-bar-left">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> Document Designer</h1>
+        </div>
+        <div class="top-bar-center">
+            <div class="zoom-controls">
+                <button id="zoom-out" title="縮小"><i class="fa-solid fa-minus"></i></button>
+                <span id="zoom-level">100%</span>
+                <button id="zoom-in" title="拡大"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <div class="action-group">
+                <button id="btn-export" class="top-btn primary" title="PDFとして保存"><i class="fa-solid fa-file-pdf"></i>
+                    PDF保存</button>
+                <div class="dropdown">
+                    <button class="top-btn secondary"><i class="fa-solid fa-image"></i> 画像 <i
+                            class="fa-solid fa-chevron-down"></i></button>
+                    <div class="dropdown-content">
+                        <button id="btn-export-png"><i class="fa-solid fa-image"></i> PNG保存</button>
+                        <button id="btn-export-jpg"><i class="fa-solid fa-image"></i> JPG保存</button>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="top-btn secondary"><i class="fa-solid fa-database"></i> データ <i
+                            class="fa-solid fa-chevron-down"></i></button>
+                    <div class="dropdown-content">
+                        <button id="btn-data-export"><i class="fa-solid fa-download"></i> JSON保存</button>
+                        <button id="btn-data-copy"><i class="fa-solid fa-key"></i> キーをコピー</button>
+                        <button id="btn-data-import"><i class="fa-solid fa-upload"></i> 読み込み</button>
+                    </div>
+                </div>
+            </div>
+            <input type="file" id="input-import-json" style="display:none" accept=".json">
+        </div>
+    </header>
+
     <div class="app-container">
         <!-- サイドバー (設定) -->
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1><i class="fa-solid fa-file-pen"></i> 文書作成ツール</h1>
-                <p>プロフェッショナルな書類をA4で出力</p>
-            </div>
+            <!-- Removed duplicated header -->
 
             <div class="controls-container">
                 <!-- 基本情報 -->
                 <div class="control-group">
-                    <h3><i class="fa-solid fa-file-signature"></i> 文書タイプ</h3>
+                    <h3><i class="fa-solid fa-file-signature"></i> 新規作成</h3>
                     <div class="input-wrap">
-                        <label>テンプレート</label>
-                        <select id="input-doc-type">
-                            <option value="announcement">生徒会お知らせ</option>
-                            <option value="proposal">提案書</option>
-                            <option value="planning">企画書</option>
-                            <option value="contract">契約書</option>
-                            <option value="purchase-order">発注書</option>
-                        </select>
+                        <label>テンプレート機能は廃止されました。自由に入力してください。</label>
+                        <button id="btn-reset-doc" class="secondary-btn w-100">
+                            <i class="fa-solid fa-rotate-right"></i> 全てリセット
+                        </button>
                     </div>
                 </div>
 
@@ -49,7 +79,7 @@
                     <h3><i class="fa-solid fa-pen"></i> 基本情報</h3>
                     <div class="input-wrap">
                         <label>タイトル</label>
-                        <input type="text" id="input-title" value="生徒会からのお知らせ">
+                        <input type="text" id="input-title" value="タイトルを入力してください">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div class="input-wrap">
@@ -57,8 +87,8 @@
                             <input type="date" id="input-date">
                         </div>
                         <div class="input-wrap">
-                            <label>ボリューム/号数</label>
-                            <input type="text" id="input-vol" value="Vol. 1">
+                            <label>識別ID/号数</label>
+                            <input type="text" id="input-vol" value="ID-001">
                         </div>
                     </div>
                     <div class="input-wrap">
@@ -66,7 +96,7 @@
                         <div class="issuer-input-container">
                             <div class="issuer-select-wrap">
                                 <select id="input-issuer-select">
-                                    <option value="生徒会執行部">生徒会執行部</option>
+                                    <option value="ここに発行者名を入力">ここに発行者名を入力</option>
                                     <option value="ADD_NEW">-- 新規追加 --</option>
                                 </select>
                                 <button id="btn-delete-issuer" class="icon-btn-danger" title="この項目を削除"
@@ -104,9 +134,20 @@
                             <div class="input-wrap">
                                 <label>フォント</label>
                                 <select id="input-font">
-                                    <option value="'Noto Sans JP', sans-serif">ゴシック体 (標準)</option>
-                                    <option value="'Noto Serif JP', serif">明朝体 (フォーマル)</option>
-                                    <option value="'Zen Maru Gothic', sans-serif">丸ゴシック (親しみ)</option>
+                                    <optgroup label="標準フォント">
+                                        <option value="'Noto Sans JP', sans-serif">Noto Sans JP (標準)</option>
+                                        <option value="'Noto Serif JP', serif">Noto Serif JP (明朝)</option>
+                                    </optgroup>
+                                    <optgroup label="UD / ユニバーサルデザイン">
+                                        <option value="'BIZ UDPGothic', sans-serif">BIZ UDPゴシック</option>
+                                        <option value="'BIZ UDPMincho', serif">BIZ UDP明朝</option>
+                                    </optgroup>
+                                    <optgroup label="システム / MS系">
+                                        <option value="'MS PGothic', 'MS Gothic', sans-serif">ＭＳ Ｐゴシック</option>
+                                        <option value="'MS PMincho', 'MS Mincho', serif">ＭＳ Ｐ明朝</option>
+                                        <option value="'Meiryo', sans-serif">メイリオ</option>
+                                        <option value="'Yu Gothic', 'YuGothic', sans-serif">遊ゴシック</option>
+                                    </optgroup>
                                 </select>
                             </div>
                             <div class="input-wrap range-wrap">
@@ -133,7 +174,7 @@
                 <!-- レイアウト設定 (独立したグループ) -->
                 <div class="control-group full-width">
                     <h3><i class="fa-solid fa-layer-group"></i> レイアウト選択</h3>
-                    <div class="layout-options">
+                    <div class="layout-grid">
                         <button class="layout-btn active" data-layout="standard"><i class="fa-solid fa-file-lines"></i>
                             標準</button>
                         <button class="layout-btn" data-layout="modern"><i class="fa-solid fa-table-columns"></i>
@@ -144,6 +185,28 @@
                             エレガント</button>
                         <button class="layout-btn" data-layout="accent"><i class="fa-solid fa-wand-magic-sparkles"></i>
                             アクセント</button>
+                        <button class="layout-btn" data-layout="business"><i class="fa-solid fa-briefcase"></i>
+                            ビジネス</button>
+                        <button class="layout-btn" data-layout="creative"><i class="fa-solid fa-palette"></i>
+                            クリエイティブ</button>
+                        <button class="layout-btn" data-layout="minimal"><i class="fa-solid fa-leaf"></i>
+                            ミニマル</button>
+                        <button class="layout-btn" data-layout="newspaper"><i class="fa-solid fa-newspaper"></i>
+                            ニュース</button>
+                        <button class="layout-btn" data-layout="academic"><i class="fa-solid fa-graduation-cap"></i>
+                            アカデミック</button>
+                    </div>
+                </div>
+
+                <!-- 表示オプション -->
+                <div class="control-group">
+                    <h3><i class="fa-solid fa-display"></i> 表示設定</h3>
+                    <div class="checkbox-group mt-10">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="input-show-page-number" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">ページ番号を表示</span>
+                        </label>
                     </div>
                 </div>
 
@@ -153,9 +216,14 @@
                     <div id="sections-container">
                         <!-- Dynamic sections will be added here -->
                     </div>
-                    <button id="btn-add-section" class="secondary-btn w-100 mt-10">
-                        <i class="fa-solid fa-plus"></i> セクションを追加
-                    </button>
+                    <div class="section-actions-grid">
+                        <button id="btn-add-section" class="secondary-btn">
+                            <i class="fa-solid fa-plus"></i> セクション追加
+                        </button>
+                        <button id="btn-add-page-break" class="secondary-btn">
+                            <i class="fa-solid fa-scissors"></i> 改ページ挿入
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 画像 -->
@@ -178,7 +246,7 @@
                     <h3><i class="fa-solid fa-copyright"></i> フッター</h3>
                     <div class="input-wrap">
                         <label>連絡先・備考</label>
-                        <textarea id="input-footer" rows="2">ご不明な点は生徒会室までお問い合わせください。</textarea>
+                        <textarea id="input-footer" rows="2">ここに連絡先・備考を入力してください。</textarea>
                     </div>
                 </div>
 
@@ -195,27 +263,12 @@
                 </div>
             </div>
 
-            <div class="sidebar-footer">
-                <button id="btn-export" class="primary-btn"><i class="fa-solid fa-file-pdf"></i> PDFとして保存</button>
-                <div class="export-options mt-10">
-                    <button id="btn-export-png" class="secondary-btn w-100"><i class="fa-solid fa-image"></i>
-                        PNGで保存</button>
-                    <button id="btn-export-jpg" class="secondary-btn w-100"><i class="fa-solid fa-image"></i>
-                        JPGで保存</button>
-                </div>
-            </div>
+            <!-- Sidebar footer removed -->
         </aside>
 
         <!-- メインビュー (プレビュー) -->
         <main class="preview-area">
-            <div class="toolbar">
-                <span class="toolbar-label">プレビュー (A4サイズ)</span>
-                <div class="zoom-controls">
-                    <button id="zoom-out"><i class="fa-solid fa-minus"></i></button>
-                    <span id="zoom-level">100%</span>
-                    <button id="zoom-in"><i class="fa-solid fa-plus"></i></button>
-                </div>
-            </div>
+            <!-- Removed redundant toolbar -->
 
             <div class="paper-container">
                 <div id="paper" class="paper a4 layout-standard">
@@ -225,10 +278,10 @@
                         <div class="header-content">
                             <div class="issue-info">
                                 <span class="issue-date" id="preview-date">2024年4月1日</span>
-                                <span class="issue-vol" id="preview-vol">Vol. 1</span>
+                                <span class="issue-vol" id="preview-vol">ID-001</span>
                             </div>
-                            <h1 class="paper-title" id="preview-title">生徒会からのお知らせ</h1>
-                            <div class="issuer" id="preview-issuer">生徒会執行部</div>
+                            <h1 class="paper-title" id="preview-title">タイトル</h1>
+                            <div class="issuer" id="preview-issuer">発行者名</div>
                         </div>
                     </header>
 
@@ -248,7 +301,8 @@
                     <!-- フッター -->
                     <footer class="paper-footer">
                         <div class="footer-line"></div>
-                        <p id="preview-footer">ご不明な点は生徒会室までお問い合わせください。</p>
+                        <p id="preview-footer">ここに連絡先・備考を入力してください。</p>
+                        <div class="page-number-preview">1 / 1</div>
                     </footer>
                 </div>
             </div>
@@ -266,6 +320,7 @@
             </div>
         </div>
     </div>
+    <div id="temp-image-storage" style="display:none;" data-img=""></div>
     <script src="script.js"></script>
 </body>
 

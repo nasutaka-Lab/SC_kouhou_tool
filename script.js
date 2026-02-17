@@ -1,47 +1,4 @@
-const DOC_TEMPLATES = {
-    announcement: {
-        title: "生徒会からのお知らせ",
-        issuer: "生徒会執行部",
-        sections: [
-            { heading: "文化祭の開催について", body: "ここに本文を入力してください。\n改行も反映されます。\n\n・箇条書きなども\n・使いやすいです" }
-        ]
-    },
-    proposal: {
-        title: "事業提案書",
-        issuer: "生徒会執行部",
-        sections: [
-            { heading: "1. 目的", body: "本プロジェクトの目的と背景を記載してください。" },
-            { heading: "2. 提案内容", body: "具体的な施策や導入メリットを詳しく説明します。" }
-        ]
-    },
-    planning: {
-        title: "プロジェクト企画書",
-        issuer: "生徒会執行部",
-        sections: [
-            { heading: "企画概要", body: "企画の核心となるアイデアを簡潔にまとめます。" },
-            { heading: "ターゲット層", body: "主要なターゲットと市場ニーズを分析します。" }
-        ]
-    },
-
-    contract: {
-        title: "業務委託契約書",
-        issuer: "生徒会執行部",
-        sections: [
-            { heading: "第1条（目的）", body: "本契約は、甲が乙に対し、業務を委託することを目的とする。" },
-            { heading: "第2条（報酬）", body: "報酬の支払時期および方法について規定します。" }
-        ]
-    },
-    purchase_order: {
-        title: "発注書",
-        issuer: "生徒会執行部",
-        sections: [
-            { heading: "発注内容", body: "品名：商品A\n数量：10個\n単価：1,000円" },
-            { heading: "納期・場所", body: "2024年X月Y日まで。弊社倉庫へ納品。" }
-        ]
-    }
-};
-
-const DEFAULT_ISSUERS = ["生徒会執行部"];
+const DEFAULT_ISSUERS = ["ここに発行者名を入力"];
 let customIssuers = [];
 let savedGradients = [
     { primary: "#D32F2F", accent: "#FF5252" },
@@ -49,12 +6,11 @@ let savedGradients = [
     { primary: "#388E3C", accent: "#66BB6A" },
     { primary: "#7B1FA2", accent: "#AB47BC" },
     { primary: "#FBC02D", accent: "#FFF176" }
-]; // Default gradient themes
+];
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
     const inputs = {
-        docType: document.getElementById('input-doc-type'),
         title: document.getElementById('input-title'),
         date: document.getElementById('input-date'),
         issuer: document.getElementById('input-issuer'),
@@ -68,40 +24,34 @@ document.addEventListener('DOMContentLoaded', () => {
         titleSize: document.getElementById('input-size-title'),
         bodySize: document.getElementById('input-size-body'),
         issuerSelect: document.getElementById('input-issuer-select'),
-    };
-
-    const issuerList = document.getElementById('issuer-list');
-
-    const preview = {
-        title: document.getElementById('preview-title'),
-        date: document.getElementById('preview-date'),
-        issuer: document.getElementById('preview-issuer'),
-        vol: document.getElementById('preview-vol'),
-        sections: document.getElementById('preview-sections'),
-        footer: document.getElementById('preview-footer'),
-        image: document.getElementById('preview-image'),
-        imageContainer: document.getElementById('preview-image-container'),
-        paper: document.getElementById('paper'),
+        showPageNumber: document.getElementById('input-show-page-number'),
     };
 
     const sectionsContainer = document.getElementById('sections-container');
     const btnAddSection = document.getElementById('btn-add-section');
+    const btnAddPageBreak = document.getElementById('btn-add-page-break');
+    const btnResetDoc = document.getElementById('btn-reset-doc');
     const layoutBtns = document.querySelectorAll('.layout-btn');
     const colorCode = document.getElementById('color-code');
+    const colorCodeAccent = document.getElementById('color-code-accent');
     const exportBtn = document.getElementById('btn-export');
     const exportPngBtn = document.getElementById('btn-export-png');
     const exportJpgBtn = document.getElementById('btn-export-jpg');
+    const dataExportBtn = document.getElementById('btn-data-export');
+    const dataImportBtn = document.getElementById('btn-data-import');
+    const dataCopyBtn = document.getElementById('btn-data-copy');
+    const inputImportJson = document.getElementById('input-import-json');
     const removeImgBtn = document.getElementById('btn-remove-image');
     const btnDeleteIssuer = document.getElementById('btn-delete-issuer');
     const historyContainer = document.getElementById('history-container');
     const btnSaveHistory = document.getElementById('btn-save-history');
     const btnSaveGradient = document.getElementById('btn-save-gradient');
     const gradientsContainer = document.getElementById('saved-gradients-container');
-    const colorCodeAccent = document.getElementById('color-code-accent');
     const progressPopup = document.getElementById('export-progress');
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const progressTime = document.getElementById('progress-time');
+    const paperContainer = document.querySelector('.paper-container');
 
     const valDisplays = {
         titleSize: document.getElementById('val-size-title'),
@@ -113,62 +63,63 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomOutBtn = document.getElementById('zoom-out');
     const zoomDisplay = document.getElementById('zoom-level');
 
+    // --- Debounce Control ---
+    let updatePending = false;
+    function requestUpdate() {
+        if (!updatePending) {
+            updatePending = true;
+            requestAnimationFrame(() => {
+                updatePreview();
+                updatePending = false;
+            });
+        }
+    }
+
     // --- Initialization ---
-    // Set default date to today
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     inputs.date.value = `${yyyy}-${mm}-${dd}`;
 
-    loadState(); // Initial load
     loadGradients();
+    loadState();
     updateIssuerSelect();
     renderHistory();
     renderGradients();
-    updatePreview();
+    requestUpdate();
 
     // --- Event Listeners ---
 
-    // Doc Type Change
-    inputs.docType.addEventListener('change', (e) => {
-        const templateKey = e.target.value.replace('-', '_');
-        const template = DOC_TEMPLATES[templateKey];
-        if (template) {
-            inputs.title.value = template.title;
-            inputs.issuer.value = template.issuer;
-            sectionsContainer.innerHTML = '';
-            template.sections.forEach(s => createSectionUI(s.heading, s.body));
-            updatePreview();
-            saveState();
+    btnResetDoc.addEventListener('click', () => {
+        if (confirm('全ての入力をリセットしますか？')) {
+            localStorage.removeItem('announcement_tool_state');
+            location.reload();
         }
     });
 
-    // Font size display update
     inputs.titleSize.addEventListener('input', (e) => {
         valDisplays.titleSize.textContent = e.target.value;
-        updatePreview();
+        requestUpdate();
         saveState();
     });
     inputs.bodySize.addEventListener('input', (e) => {
         valDisplays.bodySize.textContent = e.target.value;
-        updatePreview();
+        requestUpdate();
         saveState();
     });
 
-    // Generic listener for interactive inputs
     Object.keys(inputs).forEach(key => {
         const el = inputs[key];
-        if (el && el.type !== 'file' && el !== inputs.docType && el !== inputs.titleSize && el !== inputs.bodySize && el !== inputs.issuerSelect) {
-            const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+        if (el && el.type !== 'file' && el !== inputs.titleSize && el !== inputs.bodySize && el !== inputs.issuerSelect) {
+            const eventType = (el.tagName === 'SELECT' || el.type === 'checkbox') ? 'change' : 'input';
             el.addEventListener(eventType, () => {
-                updatePreview();
+                requestUpdate();
                 saveState();
             });
         }
     });
 
-    // Issuer Select Handling
     inputs.issuerSelect.addEventListener('change', (e) => {
         if (e.target.value === 'ADD_NEW') {
             inputs.issuerSelect.parentElement.style.display = 'none';
@@ -178,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             inputs.issuer.value = e.target.value;
             toggleDeleteBtn();
-            updatePreview();
+            requestUpdate();
             saveState();
         }
     });
@@ -187,9 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = inputs.issuerSelect.value;
         if (customIssuers.includes(val)) {
             customIssuers = customIssuers.filter(i => i !== val);
-            inputs.issuer.value = "生徒会執行部";
+            inputs.issuer.value = DEFAULT_ISSUERS[0];
             updateIssuerSelect();
-            updatePreview();
+            requestUpdate();
             saveState();
         }
     });
@@ -204,30 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Special listener for issuer text input to "finish" adding
     inputs.issuer.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            addIssuerIfNew(inputs.issuer.value);
-        }
+        if (e.key === 'Enter') addIssuerIfNew(inputs.issuer.value);
     });
 
-    inputs.issuer.addEventListener('blur', () => {
-        addIssuerIfNew(inputs.issuer.value);
-    });
-
-    // Color Picker
-    inputs.color.addEventListener('input', (e) => {
-        const color = e.target.value;
-        colorCode.textContent = color;
-        document.documentElement.style.setProperty('--primary-color', color);
-        updatePreview();
-        saveState();
-    });
+    inputs.issuer.addEventListener('blur', () => addIssuerIfNew(inputs.issuer.value));
 
     btnSaveGradient.addEventListener('click', () => {
         const p = inputs.color.value;
         const a = inputs.colorAccent.value;
-        // Check if already exists
         if (!savedGradients.some(g => g.primary === p && g.accent === a)) {
             savedGradients.push({ primary: p, accent: a });
             saveGradients();
@@ -241,9 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadGradients() {
         const saved = localStorage.getItem('announcement_tool_gradients');
-        if (saved) {
-            savedGradients = JSON.parse(saved);
-        }
+        if (saved) savedGradients = JSON.parse(saved);
     }
 
     function renderGradients() {
@@ -257,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 swatch.classList.add('active');
             }
             swatch.style.background = `linear-gradient(135deg, ${grad.primary} 0%, ${grad.accent} 100%)`;
-            swatch.title = `${grad.primary} / ${grad.accent}`;
 
             const removeBtn = document.createElement('button');
             removeBtn.className = 'btn-remove-color';
@@ -268,80 +201,116 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveGradients();
                 renderGradients();
             });
-
             swatch.appendChild(removeBtn);
-
             swatch.addEventListener('click', () => {
                 inputs.color.value = grad.primary;
                 inputs.colorAccent.value = grad.accent;
                 colorCode.textContent = grad.primary;
                 if (colorCodeAccent) colorCodeAccent.textContent = grad.accent;
-                preview.paper.style.setProperty('--paper-primary', grad.primary);
-                preview.paper.style.setProperty('--paper-accent', grad.accent);
                 renderGradients();
-                updatePreview();
+                requestUpdate();
                 saveState();
             });
-
             gradientsContainer.appendChild(swatch);
         });
     }
 
-    // Color Pickers
     inputs.color.addEventListener('input', (e) => {
-        const color = e.target.value;
-        colorCode.textContent = color;
-        preview.paper.style.setProperty('--paper-primary', color);
-        updatePreview();
+        colorCode.textContent = e.target.value;
+        requestUpdate();
         saveState();
     });
 
     inputs.colorAccent.addEventListener('input', (e) => {
-        const color = e.target.value;
-        if (colorCodeAccent) colorCodeAccent.textContent = color;
-        preview.paper.style.setProperty('--paper-accent', color);
-        updatePreview();
+        if (colorCodeAccent) colorCodeAccent.textContent = e.target.value;
+        requestUpdate();
         saveState();
     });
-    // Layout Switching
+
     layoutBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             layoutBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const layout = btn.dataset.layout;
-            preview.paper.className = `paper a4 layout-${layout}`;
-            updatePreview();
+            requestUpdate();
             saveState();
         });
     });
 
-    // Section Management
     btnAddSection.addEventListener('click', () => {
-        createSectionUI("", "");
-        updatePreview();
+        createSectionUI("", "", "text");
+        requestUpdate();
         saveState();
     });
 
-    // History Actions
-    btnSaveHistory.addEventListener('click', () => {
-        saveToHistory();
+    btnAddPageBreak.addEventListener('click', () => {
+        createSectionUI("改ページ", "", "page-break");
+        requestUpdate();
+        saveState();
     });
+
+    dataExportBtn.addEventListener('click', () => {
+        const state = getCurrentState();
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `document_data_${new Date().getTime()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    dataCopyBtn.addEventListener('click', () => {
+        const state = getCurrentState();
+        const str = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+        navigator.clipboard.writeText(str).then(() => {
+            alert('データを「識別キー」としてコピーしました。他の端末で「読み込み」からペーストして復元できます。');
+        });
+    });
+
+    dataImportBtn.addEventListener('click', () => {
+        const key = prompt('識別キー（文字列）を貼り付けるか、JSONファイルを選択してください（キャンセルでファイル選択）');
+        if (key && key.trim().length > 10) {
+            try {
+                const state = JSON.parse(decodeURIComponent(escape(atob(key))));
+                applyState(state);
+                requestUpdate();
+                saveState();
+                alert('キーからデータを復元しました。');
+            } catch (err) {
+                alert('無効なキーです。');
+            }
+        } else {
+            inputImportJson.click();
+        }
+    });
+
+    inputImportJson.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const state = JSON.parse(e.target.result);
+                    applyState(state);
+                    requestUpdate();
+                    saveState();
+                    alert('データを読み込みました。');
+                } catch (err) {
+                    alert('ファイルの読み込みに失敗しました。');
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    btnSaveHistory.addEventListener('click', () => saveToHistory());
 
     function saveToHistory() {
         const history = JSON.parse(localStorage.getItem('announcement_tool_history') || '[]');
         const currentState = getCurrentState();
-
-        // Add timestamp for the history entry
-        const entry = {
-            id: Date.now(),
-            savedAt: new Date().toLocaleString(),
-            state: currentState
-        };
-
-        history.unshift(entry); // Add to beginning
-        // Keep only last 20 entries to avoid overflow
+        const entry = { id: Date.now(), savedAt: new Date().toLocaleString(), state: currentState };
+        history.unshift(entry);
         if (history.length > 20) history.pop();
-
         localStorage.setItem('announcement_tool_history', JSON.stringify(history));
         renderHistory();
         alert('現在の状態を履歴に保存しました。');
@@ -350,92 +319,108 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderHistory() {
         if (!historyContainer) return;
         const history = JSON.parse(localStorage.getItem('announcement_tool_history') || '[]');
-
         if (history.length === 0) {
             historyContainer.innerHTML = '<p class="empty-msg">履歴はありません</p>';
             return;
         }
-
         historyContainer.innerHTML = '';
         history.forEach(item => {
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
             historyItem.innerHTML = `
-                <div class="history-item-info">
-                    <span class="history-item-title">${item.state.title}</span>
-                    <span class="history-item-date">${item.savedAt}</span>
-                </div>
-                <div class="history-item-actions">
-                    <button class="btn-delete-history" title="削除"><i class="fa-solid fa-trash"></i></button>
-                </div>
+                <div class="history-item-info"><span class="history-item-title">${item.state.title}</span><span class="history-item-date">${item.savedAt}</span></div>
+                <div class="history-item-actions"><button class="btn-delete-history" title="削除"><i class="fa-solid fa-trash"></i></button></div>
             `;
-
-            // Click to load
             historyItem.addEventListener('click', (e) => {
                 if (e.target.closest('.btn-delete-history')) return;
-                if (confirm('この履歴を読み込みますか？現在の編集内容は上書きされます。')) {
+                if (confirm('読み込みますか？')) {
                     applyState(item.state);
-                    updatePreview();
+                    requestUpdate();
                     saveState();
                 }
             });
-
-            // Delete specific history
             historyItem.querySelector('.btn-delete-history').addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('この履歴を削除しますか？')) {
+                if (confirm('削除しますか？')) {
                     const updatedHistory = history.filter(h => h.id !== item.id);
                     localStorage.setItem('announcement_tool_history', JSON.stringify(updatedHistory));
                     renderHistory();
                 }
             });
-
             historyContainer.appendChild(historyItem);
         });
     }
 
-    function createSectionUI(headingValue, bodyValue) {
+    function createSectionUI(headingValue, bodyValue, type = "text") {
         const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'sidebar-section';
-        sectionDiv.innerHTML = `
-            <div class="section-controls">
-                <span class="section-label">セクション</span>
-                <button class="btn-remove-section"><i class="fa-solid fa-trash"></i></button>
-            </div>
-            <div class="input-wrap">
-                <input type="text" class="section-heading" value="${headingValue}" placeholder="見出し">
-            </div>
-            <div class="input-wrap">
-                <textarea class="section-body" rows="4" placeholder="本文">${bodyValue}</textarea>
-            </div>
-        `;
+        sectionDiv.className = `sidebar-section ${type === 'page-break' ? 'is-page-break' : ''}`;
+        sectionDiv.dataset.type = type;
+
+        if (type === 'page-break') {
+            sectionDiv.innerHTML = `
+                <div class="section-controls">
+                    <span class="section-label"><i class="fa-solid fa-scissors"></i> 改ページ</span>
+                    <button class="btn-remove-section"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <p>このページ以後のヘッダーは非表示になります</p>
+                <input type="hidden" class="section-heading" value="[PAGE_BREAK]">
+                <textarea style="display:none" class="section-body"></textarea>
+            `;
+        } else {
+            sectionDiv.innerHTML = `
+                <div class="section-controls">
+                    <span class="section-label">セクション</span>
+                    <button class="btn-remove-section"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <div class="input-wrap"><input type="text" class="section-heading" value="${headingValue}" placeholder="項目名を入力"></div>
+                <div class="section-toolbar">
+                    <button class="tool-btn btn-bold" title="太字にする (**テキスト**)"><i class="fa-solid fa-bold"></i> 太字</button>
+                </div>
+                <div class="input-wrap"><textarea class="section-body" rows="4" placeholder="本文を入力">${bodyValue}</textarea></div>
+            `;
+
+            const textarea = sectionDiv.querySelector('.section-body');
+            sectionDiv.querySelector('.btn-bold').addEventListener('click', () => {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const selectedText = text.substring(start, end);
+                const beforeText = text.substring(0, start);
+                const afterText = text.substring(end);
+
+                textarea.value = `${beforeText}**${selectedText}**${afterText}`;
+                textarea.focus();
+                textarea.setSelectionRange(start + 2, end + 2);
+                requestUpdate();
+                saveState();
+            });
+        }
 
         sectionDiv.querySelector('.btn-remove-section').addEventListener('click', () => {
             sectionDiv.remove();
-            updatePreview();
+            requestUpdate();
             saveState();
         });
 
         sectionDiv.querySelectorAll('input, textarea').forEach(el => {
             el.addEventListener('input', () => {
-                updatePreview();
+                requestUpdate();
                 saveState();
             });
         });
 
         sectionsContainer.appendChild(sectionDiv);
+        return sectionDiv;
     }
 
-    // Image Upload
     inputs.imageFile.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                preview.image.src = e.target.result;
-                preview.imageContainer.style.display = 'block';
+                document.getElementById('temp-image-storage').dataset.img = e.target.result;
                 removeImgBtn.style.display = 'inline-block';
-                updatePreview();
+                requestUpdate();
                 saveState();
             };
             reader.readAsDataURL(file);
@@ -444,372 +429,316 @@ document.addEventListener('DOMContentLoaded', () => {
 
     removeImgBtn.addEventListener('click', () => {
         inputs.imageFile.value = '';
-        preview.image.src = '';
-        preview.imageContainer.style.display = 'none';
+        document.getElementById('temp-image-storage').dataset.img = '';
         removeImgBtn.style.display = 'none';
-        updatePreview();
+        requestUpdate();
         saveState();
     });
 
-    // Zoom
     function setZoom(level) {
-        zoomLevel = level;
-        preview.paper.style.transform = `scale(${zoomLevel})`;
+        zoomLevel = Math.max(0.1, Math.min(2.0, level));
+        document.querySelectorAll('.paper').forEach(p => p.style.transform = `scale(${zoomLevel})`);
         zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
     }
-    zoomInBtn.addEventListener('click', () => zoomLevel < 1.5 && setZoom(zoomLevel + 0.1));
-    zoomOutBtn.addEventListener('click', () => zoomLevel > 0.3 && setZoom(zoomLevel - 0.1));
+    zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.1));
+    zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.1));
     setZoom(0.75);
 
     function updateIssuerSelect() {
         if (!inputs.issuerSelect) return;
-        // Keep only standard options + ADD_NEW
         const currentVal = inputs.issuer.value;
-        inputs.issuerSelect.innerHTML = `
-            <option value="生徒会執行部">生徒会執行部</option>
-        `;
-
+        inputs.issuerSelect.innerHTML = `<option value="${DEFAULT_ISSUERS[0]}">${DEFAULT_ISSUERS[0]}</option>`;
         customIssuers.forEach(issuer => {
             const opt = document.createElement('option');
-            opt.value = issuer;
-            opt.textContent = issuer;
+            opt.value = opt.textContent = issuer;
             inputs.issuerSelect.appendChild(opt);
         });
-
         const addNewOpt = document.createElement('option');
         addNewOpt.value = 'ADD_NEW';
         addNewOpt.textContent = '-- 新規追加 --';
         inputs.issuerSelect.appendChild(addNewOpt);
-
         inputs.issuerSelect.value = currentVal;
         toggleDeleteBtn();
     }
 
     function addIssuerIfNew(value) {
         if (!value) {
-            // If empty, just switch back
-            inputs.issuer.style.display = 'none';
-            inputs.issuerSelect.parentElement.style.display = 'flex';
-            inputs.issuerSelect.value = "生徒会執行部";
-            inputs.issuer.value = "生徒会執行部";
-            updatePreview();
-            return;
-        }
-        if (!DEFAULT_ISSUERS.includes(value) && !customIssuers.includes(value) && value !== "生徒会執行部") {
+            inputs.issuerSelect.value = inputs.issuer.value = DEFAULT_ISSUERS[0];
+        } else if (!DEFAULT_ISSUERS.includes(value) && !customIssuers.includes(value)) {
             customIssuers.push(value);
         }
         updateIssuerSelect();
         inputs.issuer.style.display = 'none';
         inputs.issuerSelect.parentElement.style.display = 'flex';
-        inputs.issuerSelect.value = value;
-        updatePreview();
+        inputs.issuerSelect.value = value || DEFAULT_ISSUERS[0];
+        requestUpdate();
         saveState();
     }
 
-    // --- Core Functions ---
+    function parseText(text) {
+        if (!text) return "";
+        return text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    }
+
+    function createPageTemplate(pageNumber, totalPages, headerVisible) {
+        const layout = document.querySelector('.layout-btn.active').dataset.layout;
+        const page = document.createElement('div');
+        page.className = `paper a4 layout-${layout}`;
+        page.style.setProperty('--paper-primary', inputs.color.value);
+        page.style.setProperty('--paper-accent', inputs.colorAccent.value);
+        page.style.fontFamily = inputs.font.value;
+        page.style.transform = `scale(${zoomLevel})`;
+
+        const footerNumVisible = inputs.showPageNumber.checked;
+
+        page.innerHTML = `
+            <header class="paper-header" style="display: ${headerVisible ? 'block' : 'none'}">
+                <div class="header-decoration"></div>
+                <div class="header-content">
+                    <div class="issue-info">
+                        <span class="issue-date">${formatDate(inputs.date.value)}</span>
+                        <span class="issue-vol">${inputs.vol.value}</span>
+                    </div>
+                    <h1 class="paper-title" style="font-size: ${inputs.titleSize.value}pt">${inputs.title.value}</h1>
+                    <div class="issuer">${inputs.issuer.value}</div>
+                </div>
+            </header>
+            <div class="paper-body">
+                <div class="page-sections"></div>
+            </div>
+            <footer class="paper-footer">
+                <div class="footer-line"></div>
+                <p class="footer-text">${inputs.footer.value}</p>
+                <div class="page-number-preview" style="display: ${footerNumVisible ? 'block' : 'none'}">
+                    ${pageNumber} / <span class="total-pages">${totalPages}</span>
+                </div>
+            </footer>
+        `;
+        return page;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const parts = dateStr.split('-');
+        return parts.length === 3 ? `${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日` : dateStr;
+    }
 
     function updatePreview() {
-        // Date
-        const dateVal = inputs.date.value;
-        if (dateVal) {
-            const parts = dateVal.split('-');
-            if (parts.length === 3) {
-                preview.date.textContent = `${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+        const sectionsData = [];
+        sectionsContainer.querySelectorAll('.sidebar-section').forEach(sec => {
+            sectionsData.push({
+                type: sec.dataset.type || "text",
+                heading: sec.querySelector('.section-heading').value,
+                body: sec.querySelector('.section-body').value
+            });
+        });
+
+        const imageData = document.getElementById('temp-image-storage').dataset.img;
+        const fragment = document.createDocumentFragment();
+
+        let currentPageNum = 1;
+        let isHeaderHiddenForSubsequent = false;
+        let currentPage = createPageTemplate(currentPageNum, 1, true);
+        fragment.appendChild(currentPage);
+
+        let sectionsArea = currentPage.querySelector('.page-sections');
+        const maxContentHeight = 850;
+
+        sectionsData.forEach((sec, index) => {
+            if (sec.type === 'page-break') {
+                isHeaderHiddenForSubsequent = true;
+                const breakMarker = document.createElement('div');
+                breakMarker.className = 'manual-page-break-preview';
+                sectionsArea.appendChild(breakMarker);
+
+                currentPageNum++;
+                currentPage = createPageTemplate(currentPageNum, 1, false);
+                fragment.appendChild(currentPage);
+                sectionsArea = currentPage.querySelector('.page-sections');
+                return;
             }
-        }
-
-        preview.title.textContent = inputs.title.value;
-        preview.issuer.textContent = inputs.issuer.value;
-        preview.vol.textContent = inputs.vol.value;
-
-        if (inputs.font) preview.paper.style.fontFamily = inputs.font.value;
-        if (inputs.titleSize) preview.title.style.fontSize = `${inputs.titleSize.value}pt`;
-
-        // Render sections in preview
-        preview.sections.innerHTML = '';
-        const sidebarSections = sectionsContainer.querySelectorAll('.sidebar-section');
-        sidebarSections.forEach(sec => {
-            const h = sec.querySelector('.section-heading').value;
-            const b = sec.querySelector('.section-body').value;
 
             const sectionDiv = document.createElement('div');
             sectionDiv.className = 'preview-section';
-            sectionDiv.innerHTML = `
-                <div class="main-heading-container">
-                    <h2 class="main-heading">${h}</h2>
-                </div>
-                <div class="text-content" style="font-size: ${inputs.bodySize.value}pt">
-                    <p style="white-space: pre-wrap;">${b}</p>
-                </div>
-            `;
-            preview.sections.appendChild(sectionDiv);
+            sectionDiv.innerHTML = `<div class="main-heading-container"><h2 class="main-heading">${sec.heading}</h2></div><div class="text-content" style="font-size: ${inputs.bodySize.value}pt"><p>${parseText(sec.body)}</p></div>`;
+
+            sectionsArea.appendChild(sectionDiv);
+
+            if (sectionsArea.offsetHeight > maxContentHeight && index < sectionsData.length - 1) {
+                sectionDiv.remove();
+                currentPageNum++;
+                const shouldShowHeader = (currentPageNum === 1 && !isHeaderHiddenForSubsequent);
+                currentPage = createPageTemplate(currentPageNum, 1, shouldShowHeader);
+                fragment.appendChild(currentPage);
+                sectionsArea = currentPage.querySelector('.page-sections');
+                sectionsArea.appendChild(sectionDiv);
+            }
         });
 
-        if (inputs.imageSize && preview.image) {
-            preview.image.style.width = `${inputs.imageSize.value}%`;
-            preview.image.style.maxWidth = `${inputs.imageSize.value}%`;
+        if (imageData) {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'content-wrapper';
+            imgWrapper.innerHTML = `<div class="image-container"><img src="${imageData}" style="width: ${inputs.imageSize.value}%; max-width: ${inputs.imageSize.value}%"></div>`;
+            sectionsArea.appendChild(imgWrapper);
+            if (sectionsArea.offsetHeight > maxContentHeight) {
+                imgWrapper.remove();
+                currentPageNum++;
+                const shouldShowHeader = (currentPageNum === 1 && !isHeaderHiddenForSubsequent);
+                currentPage = createPageTemplate(currentPageNum, 1, shouldShowHeader);
+                fragment.appendChild(currentPage);
+                sectionsArea = currentPage.querySelector('.page-sections');
+                sectionsArea.appendChild(imgWrapper);
+            }
         }
 
-        preview.footer.textContent = inputs.footer.value;
+        const totalPages = currentPageNum;
+        fragment.querySelectorAll('.total-pages').forEach(el => el.textContent = totalPages);
+
+        paperContainer.innerHTML = '';
+        paperContainer.appendChild(fragment);
     }
 
     function getCurrentState() {
         const sectionsData = [];
         sectionsContainer.querySelectorAll('.sidebar-section').forEach(sec => {
             sectionsData.push({
+                type: sec.dataset.type || "text",
                 heading: sec.querySelector('.section-heading').value,
                 body: sec.querySelector('.section-body').value
             });
         });
-
         return {
-            docType: inputs.docType.value,
-            title: inputs.title.value,
-            date: inputs.date.value,
-            issuer: inputs.issuer.value,
-            vol: inputs.vol.value,
-            color: inputs.color.value,
-            colorAccent: inputs.colorAccent.value,
-            font: inputs.font.value,
-            footer: inputs.footer.value,
-            titleSize: inputs.titleSize.value,
-            bodySize: inputs.bodySize.value,
-            imageSize: inputs.imageSize.value,
-            sections: sectionsData,
-            customIssuers: customIssuers,
+            title: inputs.title.value, date: inputs.date.value, issuer: inputs.issuer.value, vol: inputs.vol.value,
+            color: inputs.color.value, colorAccent: inputs.colorAccent.value, font: inputs.font.value, footer: inputs.footer.value,
+            titleSize: inputs.titleSize.value, bodySize: inputs.bodySize.value, imageSize: inputs.imageSize.value,
+            sections: sectionsData, customIssuers: customIssuers,
             layout: document.querySelector('.layout-btn.active').dataset.layout,
-            imageData: preview.image.src
+            imageData: document.getElementById('temp-image-storage').dataset.img,
+            showPageNumber: inputs.showPageNumber.checked
         };
     }
 
     function saveState() {
-        const state = getCurrentState();
-        localStorage.setItem('announcement_tool_state', JSON.stringify(state));
+        localStorage.setItem('announcement_tool_state', JSON.stringify(getCurrentState()));
     }
 
     function applyState(state) {
         try {
-            inputs.docType.value = state.docType || 'announcement';
-            inputs.title.value = state.title;
-            inputs.date.value = state.date;
-            inputs.issuer.value = state.issuer;
-            inputs.vol.value = state.vol;
-            inputs.color.value = state.color;
-            inputs.colorAccent.value = state.colorAccent || '#FF5252';
-            inputs.font.value = state.font;
-            inputs.footer.value = state.footer;
-            inputs.titleSize.value = state.titleSize;
-            inputs.bodySize.value = state.bodySize;
-            inputs.imageSize.value = state.imageSize;
-
+            inputs.title.value = state.title || "";
+            inputs.date.value = state.date || "";
+            inputs.issuer.value = state.issuer || DEFAULT_ISSUERS[0];
+            inputs.vol.value = state.vol || "ID-001";
+            inputs.color.value = state.color || "#D32F2F";
+            inputs.colorAccent.value = state.colorAccent || "#FF5252";
+            inputs.font.value = state.font || "'Noto Sans JP', sans-serif";
+            inputs.footer.value = state.footer || "";
+            inputs.titleSize.value = state.titleSize || 32;
+            inputs.bodySize.value = state.bodySize || 11;
+            inputs.imageSize.value = state.imageSize || 100;
+            inputs.showPageNumber.checked = state.showPageNumber !== undefined ? state.showPageNumber : true;
             customIssuers = state.customIssuers || [];
             updateIssuerSelect();
             if (inputs.issuerSelect) inputs.issuerSelect.value = state.issuer || inputs.issuer.value;
-
-            colorCode.textContent = state.color;
-            if (colorCodeAccent) colorCodeAccent.textContent = state.colorAccent || '#FF5252';
-            preview.paper.style.setProperty('--paper-primary', state.color);
-            preview.paper.style.setProperty('--paper-accent', state.colorAccent || '#FF5252');
-            valDisplays.titleSize.textContent = state.titleSize;
-            valDisplays.bodySize.textContent = state.bodySize;
-
+            colorCode.textContent = inputs.color.value;
+            if (colorCodeAccent) colorCodeAccent.textContent = inputs.colorAccent.value;
+            valDisplays.titleSize.textContent = inputs.titleSize.value;
+            valDisplays.bodySize.textContent = inputs.bodySize.value;
             layoutBtns.forEach(btn => {
                 if (btn.dataset.layout === state.layout) {
                     layoutBtns.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    preview.paper.className = `paper a4 layout-${state.layout}`;
                 }
             });
-
-            if (state.imageData && state.imageData !== "" && state.imageData.startsWith('data:')) {
-                preview.image.src = state.imageData;
-                preview.imageContainer.style.display = 'block';
-                removeImgBtn.style.display = 'inline-block';
-            } else {
-                preview.image.src = '';
-                preview.imageContainer.style.display = 'none';
-                removeImgBtn.style.display = 'none';
-            }
-
+            document.getElementById('temp-image-storage').dataset.img = state.imageData || '';
+            removeImgBtn.style.display = state.imageData ? 'inline-block' : 'none';
             sectionsContainer.innerHTML = '';
-            state.sections.forEach(s => createSectionUI(s.heading, s.body));
+            if (state.sections && state.sections.length > 0) {
+                state.sections.forEach(s => createSectionUI(s.heading, s.body, s.type));
+            } else {
+                createSectionUI("ここに項目を入力", "本文を入力してください。", "text");
+            }
         } catch (e) {
-            console.error("Failed to apply state", e);
+            console.error(e);
         }
     }
 
     function loadState() {
         const saved = localStorage.getItem('announcement_tool_state');
         if (!saved) {
-            createSectionUI("文化祭の開催について", "ここに本文を入力してください。");
-            return;
+            createSectionUI("ここに項目を入力", "本文を入力してください。", "text");
+        } else {
+            applyState(JSON.parse(saved));
         }
-        applyState(JSON.parse(saved));
     }
 
-    // --- Export Progress Simulation ---
     function showProgress(format, estimatedTotalSeconds = 5) {
         progressPopup.style.display = 'block';
-        progressText.textContent = `${format.toUpperCase()}を生成中...`;
-        progressTime.textContent = `残り約 ${estimatedTotalSeconds} 秒`;
+        progressText.textContent = `${format.toUpperCase()}生成中...`;
+        progressTime.textContent = `約 ${estimatedTotalSeconds} 秒`;
         progressBar.style.width = '0%';
-
         let elapsed = 0;
-        const intervalTime = 200;
         const interval = setInterval(() => {
-            elapsed += intervalTime / 1000;
-            const progress = Math.min((elapsed / estimatedTotalSeconds) * 90, 90);
-            progressBar.style.width = `${progress}%`;
-
-            const remaining = Math.max(0, Math.ceil(estimatedTotalSeconds - elapsed));
-            progressTime.textContent = `残り約 ${remaining} 秒`;
-
-            if (elapsed >= estimatedTotalSeconds * 0.9) {
-                clearInterval(interval);
-            }
-        }, intervalTime);
-
+            elapsed += 0.2;
+            progressBar.style.width = `${Math.min((elapsed / estimatedTotalSeconds) * 90, 90)}%`;
+            progressTime.textContent = `約 ${Math.max(0, Math.ceil(estimatedTotalSeconds - elapsed))} 秒`;
+            if (elapsed >= estimatedTotalSeconds * 0.9) clearInterval(interval);
+        }, 200);
         return () => {
             clearInterval(interval);
             progressTime.textContent = "完了！";
             progressBar.style.width = '100%';
-            setTimeout(() => {
-                progressPopup.style.display = 'none';
-                progressBar.style.width = '0%';
-            }, 800);
+            setTimeout(() => progressPopup.style.display = 'none', 800);
         };
     }
 
-    // --- PDF Export ---
-    exportBtn.addEventListener('click', () => {
-        updatePreview();
-        const finishProgress = showProgress('PDF', 6);
-
-        const element = document.getElementById('paper');
-
-        const safeTitle = (inputs.title.value || 'document').replace(/[\\/:*?"<>|]/g, '_');
-        const safeDate = (inputs.date.value || '').replace(/[\\/:*?"<>|]/g, '_');
-        const filename = `${safeTitle}_${safeDate}.pdf`;
-
-        const originalStyles = {
-            transform: element.style.transform,
-            width: element.style.width,
-            height: element.style.height,
-            overflow: element.style.overflow,
-            boxShadow: element.style.boxShadow,
-            position: element.style.position,
-            left: element.style.left,
-            top: element.style.top,
-            zIndex: element.style.zIndex
-        };
-
-        // Deep isolation for capture
-        element.style.transform = 'none';
-        element.style.width = '793.7px';
-        element.style.height = '1122px';
-        element.style.overflow = 'hidden';
-        element.style.boxShadow = 'none';
-        element.style.position = 'fixed';
-        element.style.left = '0';
-        element.style.top = '0';
-        element.style.zIndex = '99999';
-
+    exportBtn.addEventListener('click', async () => {
+        const papers = document.querySelectorAll('.paper');
+        const finishProgress = showProgress('PDF', papers.length * 4);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
         exportBtn.disabled = true;
-
-        html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            windowWidth: 794
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/jpeg', 0.98);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(filename);
-
-            Object.assign(element.style, originalStyles);
+        try {
+            for (let i = 0; i < papers.length; i++) {
+                const paper = papers[i];
+                const originalTransform = paper.style.transform;
+                paper.style.transform = 'none';
+                paper.style.boxShadow = 'none';
+                const canvas = await html2canvas(paper, { scale: 2, useCORS: true, logging: false, width: 793.7, height: 1122 });
+                if (i > 0) pdf.addPage();
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+                paper.style.transform = originalTransform;
+                paper.style.boxShadow = '';
+            }
+            pdf.save(`${inputs.title.value || 'document'}.pdf`);
+        } catch (err) {
+            console.error(err);
+        } finally {
             exportBtn.disabled = false;
             finishProgress();
-        }).catch(err => {
-            console.error("PDF Export Error:", err);
-            finishProgress();
-            alert('PDFの書き出し中にエラーが発生しました。');
-            Object.assign(element.style, originalStyles);
-            exportBtn.disabled = false;
-        });
+        }
     });
 
-    // --- Image Export (PNG/JPG) ---
-    function exportImage(format) {
-        updatePreview(); // Ensure preview is up to date
-        // Images take longer, estimate 8s
-        const finishProgress = showProgress(format, 8);
-
-        const element = document.getElementById('paper');
-        const btn = format === 'png' ? exportPngBtn : exportJpgBtn;
-
-        const safeTitle = (inputs.title.value || 'document').replace(/[\\/:*?"<>|]/g, '_');
-        const safeDate = (inputs.date.value || '').replace(/[\\/:*?"<>|]/g, '_');
-        const filename = `${safeTitle}_${safeDate}.${format}`;
-
-        const originalStyles = {
-            transform: element.style.transform,
-            width: element.style.width,
-            height: element.style.height,
-            overflow: element.style.overflow,
-            boxShadow: element.style.boxShadow,
-            position: element.style.position,
-            left: element.style.left,
-            top: element.style.top,
-            zIndex: element.style.zIndex
-        };
-
-        // Deep isolation for Image capture
-        element.style.transform = 'none';
-        element.style.width = '793.7px';
-        element.style.height = '1122px';
-        element.style.overflow = 'hidden';
-        element.style.boxShadow = 'none';
-        element.style.position = 'fixed';
-        element.style.left = '0';
-        element.style.top = '0';
-        element.style.zIndex = '99999';
-
-        btn.disabled = true;
-
-        // Use scale: 1.5 to speed up rendering without losing too much quality
-        html2canvas(element, {
-            scale: 1.5,
-            useCORS: true,
-            logging: false,
-            windowWidth: 794
-        }).then(canvas => {
+    async function exportImage(format) {
+        const papers = document.querySelectorAll('.paper');
+        if (papers.length > 1) alert('1ページ目のみ対応しています。');
+        const finishProgress = showProgress(format, 5);
+        try {
+            const paper = papers[0];
+            const originalTransform = paper.style.transform;
+            paper.style.transform = 'none';
+            const canvas = await html2canvas(paper, { scale: 2, useCORS: true, logging: false, width: 793.7, height: 1122 });
             const link = document.createElement('a');
-            link.download = filename;
-            link.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.9);
+            link.download = `${inputs.title.value}.${format}`;
+            link.href = canvas.toDataURL(`image/${format === 'png' ? 'png' : 'jpeg'}`, 0.9);
             link.click();
-
-            Object.assign(element.style, originalStyles);
-            btn.disabled = false;
+            paper.style.transform = originalTransform;
+        } catch (err) {
+            console.error(err);
+        } finally {
             finishProgress();
-        }).catch(err => {
-            console.error("Image Export Error:", err);
-            finishProgress();
-            alert('画像の書き出し中にエラーが発生しました。');
-            Object.assign(element.style, originalStyles);
-            btn.disabled = false;
-        });
+        }
     }
 
-    if (exportPngBtn) {
-        exportPngBtn.addEventListener('click', () => exportImage('png'));
-    }
-    if (exportJpgBtn) {
-        exportJpgBtn.addEventListener('click', () => exportImage('jpg'));
-    }
+    if (exportPngBtn) exportPngBtn.addEventListener('click', () => exportImage('png'));
+    if (exportJpgBtn) exportJpgBtn.addEventListener('click', () => exportImage('jpg'));
 });
