@@ -1111,37 +1111,61 @@ body {
     text-align: center;
 }
 
-/* Minimal Layout */
-.paper.layout-minimal {
-    padding: 30mm;
+/* Official (公的文書) Layout - Japanese Standard Format */
+.paper.layout-official {
+    padding: 25mm 20mm;
+    font-family: 'MS PMincho', 'MS Mincho', 'BIZ UDPMincho', serif;
 }
 
-.paper.layout-minimal .paper-header {
+.paper.layout-official .paper-header {
     border: none;
     text-align: left;
     padding: 0;
-    margin-bottom: 50px;
+    margin-bottom: 30px;
 }
 
-.paper.layout-minimal .header-decoration {
+.paper.layout-official .header-decoration {
     display: none;
 }
 
-.paper.layout-minimal .paper-title {
-    font-weight: 300;
-    font-size: 28pt;
-    color: #222;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+.paper.layout-official .issue-info {
+    text-align: right;
+    margin-bottom: 15px;
+    font-size: 0.85rem;
 }
 
-.paper.layout-minimal .main-heading {
+.paper.layout-official .paper-title {
+    font-weight: 700;
+    font-size: 18pt;
+    color: #000;
+    text-align: center;
+    letter-spacing: 0.05em;
+    margin: 20px 0;
+    text-decoration: underline;
+    text-underline-offset: 8px;
+}
+
+.paper.layout-official .issuer {
+    text-align: right;
+    font-size: 0.95rem;
+    margin-top: 15px;
+}
+
+.paper.layout-official .main-heading {
     border: none;
-    border-bottom: 1px solid #eee;
+    border-bottom: none;
     padding-left: 0;
-    font-weight: 500;
-    font-size: 14pt;
-    color: #444;
+    font-weight: 700;
+    font-size: 12pt;
+    color: #000;
+    margin-top: 25px;
+    margin-bottom: 10px;
+}
+
+.paper.layout-official .text-content p {
+    text-indent: 1em;
+    line-height: 2.0;
+    text-align: left;
 }
 
 /* Newspaper Layout */
