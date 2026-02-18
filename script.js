@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sectionDiv = document.createElement('div');
             sectionDiv.className = 'preview-section';
-            sectionDiv.innerHTML = `<div class="main-heading-container"><h2 class="main-heading">${sec.heading}</h2></div><div class="text-content" style="font-size: ${inputs.bodySize.value}pt"><p>${parseText(sec.body)}</p></div>`;
+            sectionDiv.innerHTML = `<div class="main-heading-container"><h2 class="main-heading">${sec.heading}</h2></div><div class="text-content" style="font-size: ${inputs.bodySize.value}pt; line-height: 1.8;"><p>${parseText(sec.body)}</p></div>`;
 
             sectionsArea.appendChild(sectionDiv);
 

@@ -694,7 +694,8 @@ body {
     position: relative;
     color: black;
     transform-origin: top center;
-    font-family: var(--font-gothic);
+    /* font-family はJSのインラインスタイルで動的に設定されるため、ここでは指定しない */
+    font-family: 'Noto Sans JP', sans-serif;
     margin-bottom: 30px;
     flex-shrink: 0;
     transition: transform 0.1s ease;
@@ -796,7 +797,8 @@ body {
 }
 
 .text-content p {
-    font-size: 11pt;
+    /* font-size はJSのインラインスタイル(style.css より低い詳細度)で設定されるため、
+       ここでは指定せず、親要素 .text-content の font-size を継承させる */
     line-height: 1.8;
     margin-bottom: 15px;
     white-space: pre-wrap;
@@ -1246,6 +1248,7 @@ body {
 }
 
 .text-content p {
+    font-size: inherit;
     line-height: 1.8;
     margin-bottom: 20px;
     text-align: justify;
